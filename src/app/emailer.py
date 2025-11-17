@@ -1,26 +1,23 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from .config import EMAIL_HOST, EMAIL_PORT, EMAIL_USERNAME, EMAIL_PASSWORD, FROM_EMAIL, FROM_NAME
+import os
+import requests
+from .config import FROM_EMAIL, FROM_NAME
+
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 
 def send_thank_you_email(to_email: str, to_name: str | None):
-    msg = MIMEMultipart()
-    msg['Subject'] = "You're on the waitlist!"
-    msg['From'] = f"{FROM_NAME} <{FROM_EMAIL}>"
-    msg['To'] = to_email
-
-    html_content = f"""
-    <p>Hi {to_name or ""},</p>
-    <p>Thanks for joining the waitlist. You're in.</p>
-    <p>- The {FROM_NAME} Team</p>
-    """
-
-    msg.attach(MIMEText(html_content, 'html'))
-
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "api-key": BREVO_API_KEY,
+        "Content-Type": "application/json"
+    }
+    data = {
+        "sender": {"email": FROM_EMAIL, "name": FROM_NAME},
+        "to": [{"email": to_email, "name": to_name or ""}],
+        "subject": "You're on the waitlist!",
+        "htmlContent": f"<p>Hi {to_name or ''},</p><p>Thanks for joining the waitlist. You're in.</p><p>- The {FROM_NAME} Team</p>"
+    }
     try:
-        with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-            server.starttls()
-            server.login(EMAIL_USERNAME, EMAIL_PASSWORD)
-            server.send_message(msg)
+        response = requests.post(url, json=data, headers=headers, timeout=10)
+        response.raise_for_status()
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Error sending email via Brevo API: {e}")
