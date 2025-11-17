@@ -11,6 +11,3 @@ dependencies = [
     "python-dotenv",
     "httpx",
 ]
-
-[tool.uv]
-src = "src"
